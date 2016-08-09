@@ -32,7 +32,7 @@ namespace SportsStore.UnitTests
             controller.PageSize = 3;
 
             //Act
-            ProductListViewModel result = (ProductListViewModel)controller.List(2).Model;
+            ProductListViewModel result = (ProductListViewModel)controller.List(null, 2).Model;
 
             //Assert
             Product[] prodArray = result.Products.ToArray();
@@ -84,7 +84,7 @@ namespace SportsStore.UnitTests
             controller.PageSize = 3;
 
             //Act
-            ProductListViewModel result = (ProductListViewModel)controller.List(2).Model;
+            ProductListViewModel result = (ProductListViewModel)controller.List(null, 2).Model;
 
             //Assert            
             PagingInfo pageInfo = result.PagingInfo;
@@ -93,5 +93,115 @@ namespace SportsStore.UnitTests
             Assert.AreEqual(pageInfo.TotalItems, 5);
             Assert.AreEqual(pageInfo.TotalPages, 2);
         }
+
+        [TestMethod]
+        public void CanFilterProducts()
+        {
+            //Arrange
+            Mock<IProductRepository> mock = new Mock<IProductRepository>();
+            mock.Setup(m => m.Products).Returns(new Product[]
+            {
+                new Product {ProductID = 1, Name = "P1", Category = "Cat1"},
+                new Product {ProductID = 2, Name = "P2", Category = "Cat2"},
+                new Product {ProductID = 3, Name = "P3", Category = "Cat1"},
+                new Product {ProductID = 4, Name = "P4", Category = "Cat2"},
+                new Product {ProductID = 5, Name = "P5", Category = "Cat3"}
+            });
+
+            ProductController controller = new ProductController(mock.Object);
+
+
+            //Act
+            var result = ((ProductListViewModel)controller.List("Cat2").Model).Products.ToArray();
+
+
+            //Assert
+            Assert.IsTrue(result.Length == 2);
+            Assert.AreEqual( "P2", result[0].Name);
+            Assert.AreEqual("P4",result[1].Name);
+            
+        }
+
+        [TestMethod]
+        public void CanCreateCategories()
+        {
+
+            //Arrange
+            Mock<IProductRepository> repo = new Mock<IProductRepository>();
+            repo.Setup(m => m.Products).Returns(new Product[]
+            {
+                new Product {ProductID = 1, Name = "P1", Category = "Apples"},
+                new Product {ProductID = 2, Name = "P2", Category = "Apples"},
+                new Product {ProductID = 3, Name = "P3", Category = "Plums"},
+                new Product {ProductID = 4, Name = "P4", Category = "Oranges"},
+            });
+
+            NavController controller = new NavController(repo.Object);
+
+            //Act
+            var result = (IEnumerable<string>)controller.Menu().Model;
+
+            //Assert
+            var categories = result.ToArray();
+            Assert.IsTrue(categories.Length == 3);
+            Assert.AreEqual("Apples", categories[0]);
+            Assert.AreEqual("Oranges", categories[1]);
+            Assert.AreEqual("Plums", categories[2]);
+        }
+
+        //
+        [TestMethod]
+        public void CanReportCategory()
+        {
+            //Arrange
+            Mock<IProductRepository> repo = new Mock<IProductRepository>();
+            repo.Setup(m => m.Products).Returns(new Product[]
+            {
+                new Product {ProductID = 1, Name = "P1", Category = "Apples"},
+                new Product {ProductID = 2, Name = "P2", Category = "Apples"},
+                new Product {ProductID = 3, Name = "P3", Category = "Plums"},
+                new Product {ProductID = 4, Name = "P4", Category = "Oranges"},
+            });
+
+            NavController controller = new NavController(repo.Object);
+
+            //Act
+            var result = (string)controller.Menu("Apples").ViewBag.SelectedCategory;
+
+            //Assert           
+            Assert.AreEqual("Apples", result);
+           
+        }
+
+        [TestMethod]
+        public void CanCountPages()
+        {
+            //Arrange
+            Mock<IProductRepository> mock = new Mock<IProductRepository>();
+            mock.Setup(m => m.Products).Returns(new Product[]
+            {
+                new Product {ProductID = 1, Name = "P1", Category = "Cat1"},
+                new Product {ProductID = 2, Name = "P2", Category = "Cat2"},
+                new Product {ProductID = 3, Name = "P3", Category = "Cat1"},
+                new Product {ProductID = 4, Name = "P4", Category = "Cat2"},
+                new Product {ProductID = 5, Name = "P5", Category = "Cat3"}
+            });
+
+            ProductController controller = new ProductController(mock.Object);
+
+            //Act
+            var res1 = ((ProductListViewModel)controller.List("Cat1").Model).PagingInfo.TotalItems;
+            var res2 = ((ProductListViewModel)controller.List("Cat2").Model).PagingInfo.TotalItems;
+            var res3 = ((ProductListViewModel)controller.List("Cat3").Model).PagingInfo.TotalItems;
+            var res4 = ((ProductListViewModel)controller.List(null).Model).PagingInfo.TotalItems;
+
+
+            //Assert
+            Assert.IsTrue(res1 == 2);
+            Assert.IsTrue(res2 == 2);
+            Assert.IsTrue(res3 == 1);
+            Assert.IsTrue(res4 == 5);
+        }
+
     }
 }
